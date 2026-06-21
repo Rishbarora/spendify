@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(python *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(python3 *)",
+      "PowerShell(Remove-Item *)"
     ]
   }
 }
