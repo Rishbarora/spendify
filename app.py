@@ -1,7 +1,7 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, flash
-from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from database.db import get_db, init_db, seed_db, create_user, get_user_by_email, verify_user
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-prod")
@@ -32,6 +32,8 @@ def privacy():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if session.get("user_id"):
+        return redirect(url_for("profile"))
     if request.method == "GET":
         return render_template("register.html")
 
@@ -59,9 +61,24 @@ def register():
     return redirect(url_for("login"))
 
 
-@app.route("/login")
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    return render_template("login.html")
+    if session.get("user_id"):
+        return redirect(url_for("profile"))
+    if request.method == "GET":
+        return render_template("login.html")
+
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+
+    user = verify_user(email, password)
+    if user is None:
+        flash("Invalid email or password.", "error")
+        return render_template("login.html")
+
+    session["user_id"] = user["id"]
+    session["user_name"] = user["name"]
+    return redirect(url_for("profile"))
 
 
 # ------------------------------------------------------------------ #
@@ -70,12 +87,14 @@ def login():
 
 @app.route("/logout")
 def logout():
-    return "Logout — coming in Step 3"
+    session.clear()
+    flash("You've been signed out.", "success")
+    return redirect(url_for("landing"))
 
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    return render_template("profile.html")
 
 
 @app.route("/expenses/add")
